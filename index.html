@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCMR - AI Customer Portal</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:Arial;background:#667eea;padding:20px;}
+        .container{max-width:1200px;margin:0 auto;}
+        .header{background:white;border-radius:15px;padding:20px;margin-bottom:20px;text-align:center;}
+        .header h1{color:#667eea;}
+        .offline-badge{background:#4CAF50;color:white;display:inline-block;padding:5px 15px;border-radius:20px;font-size:12px;}
+        .card{background:white;border-radius:15px;padding:25px;margin-bottom:20px;}
+        .ai-card{background:#f0f0ff;border-left:5px solid #764ba2;}
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px;}
+        .stat-card{background:#667eea;color:white;padding:20px;border-radius:12px;text-align:center;}
+        .stat-number{font-size:32px;font-weight:bold;}
+        input,select,textarea{width:100%;padding:12px;margin:8px 0;border:2px solid #e0e0e0;border-radius:8px;}
+        button{background:#667eea;color:white;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;margin:5px;}
+        .btn-danger{background:#f44336;}
+        .btn-success{background:#4CAF50;}
+        .customer-item{background:#f8f9fa;border:1px solid #ddd;border-radius:10px;padding:15px;margin-bottom:15px;}
+        .priority-critical{background:#f44336;color:white;padding:4px 12px;border-radius:20px;font-size:12px;}
+        .priority-high{background:#ff9800;color:white;padding:4px 12px;border-radius:20px;font-size:12px;}
+        .priority-normal{background:#4CAF50;color:white;padding:4px 12px;border-radius:20px;font-size:12px;}
+        .insight-item{background:white;padding:15px;margin:12px 0;border-radius:10px;border-left:4px solid #764ba2;}
+        .search-box{margin-bottom:20px;}
+        .search-box input{width:100%;padding:12px;}
+        @media (max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 SmartCMR</h1>
+            <p>AI-Powered Customer Management Portal</p>
+            <div class="offline-badge">📡 Offline Mode | AI Insights Active</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number" id="totalCustomers">0</div><div>Total</div></div>
+            <div class="stat-card"><div class="stat-number" id="criticalCount">0</div><div>Critical</div></div>
+            <div class="stat-card"><div class="stat-number" id="needFollowup">0</div><div>Need Follow-up</div></div>
+            <div class="stat-card"><div class="stat-number" id="healthScore">100%</div><div>Health Score</div></div>
+        </div>
+
+        <div class="card ai-card">
+            <h2>🤖 AI-Driven Insights</h2>
+            <div id="aiInsights">Loading...</div>
+        </div>
+
+        <div class="card">
+            <h2>➕ Add New Customer</h2>
+            <input type="text" id="customerName" placeholder="Full Name *">
+            <input type="text" id="customerPhone" placeholder="Phone Number *">
+            <input type="text" id="customerAddress" placeholder="Address">
+            <select id="customerPriority">
+                <option value="normal">Normal Priority</option>
+                <option value="high">⚠️ High Priority</option>
+                <option value="critical">🚨 Critical</option>
+            </select>
+            <textarea id="customerNotes" placeholder="Notes" rows="2"></textarea>
+            <button onclick="addCustomer()" class="btn-success">💾 Save Customer</button>
+        </div>
+
+        <div class="card">
+            <h2>👥 Customer List</h2>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search..." onkeyup="searchCustomers()">
+            </div>
+            <div id="customerList"></div>
+            <button onclick="exportData()" style="background:#2196F3;">📁 Export Data</button>
+            <button onclick="clearAllData()" class="btn-danger">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <script>
+        let customers = JSON.parse(localStorage.getItem('customers') || '[]');
+        if(customers.length === 0){
+            customers = [
+                {id:1, name:"Ahmad Rezaei", phone:"0912 345 6789", address:"Tehran", priority:"critical", notes:"Needs medication", lastContact: new Date(Date.now()-10*86400000).toISOString()},
+                {id:2, name:"Sarah Mohammadi", phone:"0935 123 4567", address:"Tehran", priority:"high", notes:"Pregnant", lastContact: new Date(Date.now()-3*86400000).toISOString()}
+            ];
+            localStorage.setItem('customers', JSON.stringify(customers));
+        }
+        
+        function saveData(){localStorage.setItem('customers', JSON.stringify(customers)); updateStats(); displayCustomers(); generateAI();}
+        
+        function addCustomer(){
+            let name=document.getElementById('customerName').value.trim();
+            let phone=document.getElementById('customerPhone').value.trim();
+            if(!name||!phone){alert("Enter name and phone");return;}
+            customers.unshift({
+                id:Date.now(), name:name, phone:phone, address:document.getElementById('customerAddress').value||"Not provided",
+                priority:document.getElementById('customerPriority').value, notes:document.getElementById('customerNotes').value||"",
+                lastContact:new Date().toISOString()
+            });
+            saveData();
+            document.getElementById('customerName').value="";
+            document.getElementById('customerPhone').value="";
+            document.getElementById('customerAddress').value="";
+            document.getElementById('customerPriority').value="normal";
+            document.getElementById('customerNotes').value="";
+            alert("Customer added!");
+        }
+        
+        function deleteCustomer(id){if(confirm("Delete?")){customers=customers.filter(c=>c.id!==id); saveData();}}
+        
+        function markContacted(id){
+            let c=customers.find(c=>c.id===id);
+            if(c){c.lastContact=new Date().toISOString(); saveData(); alert("Contact recorded!");}
+        }
+        
+        function searchCustomers(){
+            let term=document.getElementById('searchInput').value.toLowerCase();
+            let filtered=customers.filter(c=>c.name.toLowerCase().includes(term)||c.phone.includes(term));
+            displayCustomers(filtered);
+        }
+        
+        function displayCustomers(list=null){
+            let data=list||customers;
+            let container=document.getElementById('customerList');
+            if(data.length===0){container.innerHTML="<div style='padding:40px;text-align:center'>No customers</div>"; return;}
+            container.innerHTML=data.map(c=>{
+                let days=Math.floor((new Date()-new Date(c.lastContact))/86400000);
+                let pClass=c.priority==='critical'?'priority-critical':(c.priority==='high'?'priority-high':'priority-normal');
+                let pText=c.priority==='critical'?'🚨 CRITICAL':(c.priority==='high'?'⚠️ HIGH':'✅ NORMAL');
+                return `<div class="customer-item">
+                    <div style="display:flex;justify-content:space-between">
+                        <strong>${c.name}</strong>
+                        <span class="${pClass}">${pText}</span>
+                    </div>
+                    📞 ${c.phone}<br>📍 ${c.address}<br>🕒 ${days} days ago
+                    ${c.notes?`<br>📝 ${c.notes}`:""}
+                    <div style="margin-top:10px">
+                        <button onclick="markContacted(${c.id})" style="background:#4CAF50">✅ Mark Contacted</button>
+                        <button onclick="deleteCustomer(${c.id})" class="btn-danger">🗑️ Delete</button>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+        
+        function generateAI(){
+            let now=new Date();
+            let needFollow=customers.filter(c=>(now-new Date(c.lastContact))/86400000>7).length;
+            let critical=customers.filter(c=>c.priority==='critical').length;
+            let urgent=customers.filter(c=>c.priority==='critical'&&(now-new Date(c.lastContact))/86400000>7).length;
+            let avgHealth=customers.length?customers.reduce((s,c)=>{let d=(now-new Date(c.lastContact))/86400000; let h=100-(d>7?30:(d>3?15:0))-(c.priority==='critical'?10:0); return s+Math.max(0,h);},0)/customers.length:100;
+            let html=`<div class="insight-item">📊 Health Score: ${Math.floor(avgHealth)}%</div>`;
+            if(urgent>0) html+=`<div class="insight-item" style="border-left-color:#f44336">🚨 URGENT: ${urgent} critical customer(s) overdue!</div>`;
+            if(needFollow>0) html+=`<div class="insight-item" style="border-left-color:#ff9800">⚠️ ${needFollow} customer(s) need follow-up</div>`;
+            if(critical>0) html+=`<div class="insight-item">🚨 ${critical} critical priority customer(s)</div>`;
+            html+=`<div class="insight-item">💡 ${urgent>0?"Contact critical customers NOW":(needFollow>0?"Start follow-up calls today":"All caught up!")}</div>`;
+            html+=`<div class="insight-item">📡 Offline mode - Data saved locally</div>`;
+            document.getElementById('aiInsights').innerHTML=html;
+        }
+        
+        function updateStats(){
+            let now=new Date();
+            document.getElementById('totalCustomers').innerText=customers.length;
+            document.getElementById('criticalCount').innerText=customers.filter(c=>c.priority==='critical').length;
+            document.getElementById('needFollowup').innerText=customers.filter(c=>(now-new Date(c.lastContact))/86400000>7).length;
+            let avg=customers.length?customers.reduce((s,c)=>{let d=(now-new Date(c.lastContact))/86400000; let h=100-(d>7?30:(d>3?15:0))-(c.priority==='critical'?10:0); return s+Math.max(0,h);},0)/customers.length:100;
+            document.getElementById('healthScore').innerText=Math.floor(avg)+"%";
+        }
+        
+        function exportData(){
+            let a=document.createElement('a');
+            a.href=URL.createObjectURL(new Blob([JSON.stringify(customers,null,2)],{type:'application/json'}));
+            a.download=`customers_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            alert("Data exported!");
+        }
+        
+        function clearAllData(){
+            if(confirm("Delete ALL data?")){localStorage.removeItem('customers'); customers=[]; saveData();}
+        }
+        
+        displayCustomers();
+        generateAI();
+        updateStats();
+    </script>
+</body>
+</html>
