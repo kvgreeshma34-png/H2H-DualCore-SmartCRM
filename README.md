@@ -38,7 +38,7 @@ No backend, no APIs - pure client-side solution for offline-first operation.
 5. Data automatically saves offline
 
 ## 8. Demo / Screenshots
-[Screenshots will be added on final submission day]
+[Demo video and Screenshots will be added by 23rd April]
 
 ## 9. Team Members
 - **K V Greeshma** - Development, UI/UX, Testing
