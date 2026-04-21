@@ -44,4 +44,4 @@ No backend, no APIs - pure client-side solution for offline-first operation.
 - **K V Greeshma** - Development, UI/UX, Testing
 - **Kumudhanjali M** - AI Logic, Documentation, Presentation
 ## 10. Deployed Link
-[Live link will be added after deployment]
+https://kvgreeshma34-png.github.io/H2H-DualCore-SmartCRM/
