@@ -28,7 +28,6 @@
         .active-filter{background:#ff9800;box-shadow:0 0 0 3px rgba(255,152,0,0.3);}
         .clear-filter-btn{background:#666;padding:8px 16px;font-size:12px;margin-left:10px;}
         .chart-container{max-width:100%;margin:20px 0;background:#f9f9f9;border-radius:10px;padding:15px;}
-        canvas{max-height:300px;width:100%;}
         input,select,textarea{width:100%;padding:12px;margin:8px 0;border:2px solid #e0e0e0;border-radius:8px;}
         input[type="date"]{cursor:pointer;}
         input:focus,select:focus,textarea:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,0.1);}
@@ -58,7 +57,6 @@
         .modal-buttons{display:flex;gap:10px;margin-top:20px;}
         @media (max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);}.header{flex-direction:column;gap:10px;}.customer-buttons button{flex:1;}}
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="light-mode">
     <div class="container">
@@ -97,7 +95,7 @@
         <div class="card">
             <h2>📊 Customer Analytics</h2>
             <div class="chart-container">
-                <canvas id="healthChart"></canvas>
+                <div id="healthChart"></div>
             </div>
         </div>
 
@@ -159,7 +157,6 @@
 
     <script>
         let customers = [];
-        let healthChart = null;
         let editCustomerId = null;
         let currentFilter = 'all';
         function loadData() {
@@ -248,6 +245,7 @@ function addCustomer() {
     let dob = document.getElementById('customerDob').value;
     if (!name || !phone) { alert("Please enter name and phone"); return; }
     if (!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits"); return; }
+    if (!dob) { alert("Please select Date of Birth"); return; }
     customers.unshift({
         id: Date.now(), name: name, phone: phone, dob: dob,
         gender: document.getElementById('customerGender').value,
@@ -350,7 +348,7 @@ function markContacted(id) {
         saveData();
         displayCustomers();
         generateAI();
-        alert("✅ Contact recorded! Symptoms moved to history.");
+        alert("✅ Contact recorded! Symptoms cleared.");
     }
 }
 
@@ -385,7 +383,7 @@ function formatDateOnly(dateString) {
     let date = new Date(dateString);
     return date.toLocaleDateString();
 }
-function displayCustomers(list = null) {
+        function displayCustomers(list = null) {
             let data = list || customers;
             let container = document.getElementById('customerList');
             if (data.length === 0) {
@@ -455,19 +453,29 @@ function displayCustomers(list = null) {
         }
 
         function updateChart() {
-            const ctx = document.getElementById('healthChart').getContext('2d');
-            const priorities = ['Critical', 'High', 'Normal'];
-            const counts = [
-                customers.filter(c => c.priority === 'critical').length,
-                customers.filter(c => c.priority === 'high').length,
-                customers.filter(c => c.priority === 'normal').length
-            ];
-            if (healthChart) healthChart.destroy();
-            healthChart = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: priorities, datasets: [{ label: 'Number of Customers', data: counts, backgroundColor: ['#f44336', '#ff9800', '#4CAF50'], borderRadius: 10 }] },
-                options: { responsive: true }
-            });
+            const criticalCount = customers.filter(c => c.priority === 'critical').length;
+            const highCount = customers.filter(c => c.priority === 'high').length;
+            const normalCount = customers.filter(c => c.priority === 'normal').length;
+            const total = customers.length || 1;
+            
+            const criticalPercent = (criticalCount / total) * 100;
+            const highPercent = (highCount / total) * 100;
+            const normalPercent = (normalCount / total) * 100;
+            
+            const chartHtml = `
+                <div style="background:#f9f9f9; padding:15px; border-radius:10px;">
+                    <div style="margin-bottom:15px;">
+                        <div style="background:#f44336; width:${criticalPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">🚨 Critical (${criticalCount})</div>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <div style="background:#ff9800; width:${highPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">⚠️ High (${highCount})</div>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <div style="background:#4CAF50; width:${normalPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">✅ Normal (${normalCount})</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('healthChart').innerHTML = chartHtml;
         }
 
         function exportToExcel() {
