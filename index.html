@@ -338,11 +338,17 @@ function addCheckup(id) {
 function markContacted(id) {
     let customer = customers.find(c => c.id === id);
     if (customer) {
+        if (!customer.checkupHistory) customer.checkupHistory = [];
+        customer.checkupHistory.unshift({
+            date: new Date().toISOString(),
+            notes: "✅ Contacted by admin - Symptoms addressed"
+        });
+        customer.notes = "";
         customer.lastContact = new Date().toISOString();
         saveData();
         displayCustomers();
         generateAI();
-        alert("Contact recorded!");
+        alert("✅ Contact recorded! Symptoms cleared.");
     }
 }
 
