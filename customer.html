@@ -109,18 +109,24 @@
             }
         }
         function updateSymptoms(){
-            let symptoms=document.getElementById('symptoms').value;
-            let customers=getAllCustomers();
-            let index=customers.findIndex(c=>c.id===currentCustomer.id);
-            if(index!==-1){
-                customers[index].notes=symptoms;
-                currentCustomer.notes=symptoms;
-                saveAllCustomers(customers);
-                localStorage.setItem('loggedInCustomer',JSON.stringify(currentCustomer));
-                document.getElementById('updateMsg').innerHTML="✅ Updated!";
-                setTimeout(()=>{document.getElementById('updateMsg').innerHTML="";},3000);
-            }
-        }
+    let symptoms=document.getElementById('symptoms').value;
+    let customers=getAllCustomers();
+    let index=customers.findIndex(c=>c.id===currentCustomer.id);
+    if(index!==-1){
+        if (!customers[index].checkupHistory) customers[index].checkupHistory = [];
+        customers[index].checkupHistory.unshift({
+            date: new Date().toISOString(),
+            notes: "🟡 Symptom Update: " + symptoms
+        });
+        customers[index].notes=symptoms;
+        currentCustomer.notes=symptoms;
+        saveAllCustomers(customers);
+        localStorage.setItem('loggedInCustomer',JSON.stringify(currentCustomer));
+        document.getElementById('updateMsg').innerHTML="✅ Your symptoms have been recorded!";
+        setTimeout(()=>{document.getElementById('updateMsg').innerHTML="";},3000);
+        loadHistory();
+    }
+}
         function customerLogout(){
             localStorage.removeItem('loggedInCustomer');
             currentCustomer=null;
