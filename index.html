@@ -454,7 +454,7 @@
             document.getElementById('aiInsights').innerHTML = html;
         }
 
-        function updateChart() {
+                function updateChart() {
             const criticalCount = customers.filter(c => c.priority === 'critical').length;
             const highCount = customers.filter(c => c.priority === 'high').length;
             const normalCount = customers.filter(c => c.priority === 'normal').length;
@@ -465,21 +465,48 @@
             const normalPercent = (normalCount / total) * 100;
             
             const chartHtml = `
-                <div style="background:#f9f9f9; padding:15px; border-radius:10px;">
-                    <div style="margin-bottom:15px;">
-                        <div style="background:#f44336; width:${criticalPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">🚨 Critical (${criticalCount})</div>
+                <div style="background:#f0f0f0; padding:20px; border-radius:10px;">
+                    <h4 style="margin-bottom:15px; text-align:center;">📊 Customer Distribution</h4>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>🚨 Critical</span>
+                            <span>${criticalCount} (${Math.round(criticalPercent)}%)</span>
+                        </div>
+                        <div style="background:#e0e0e0; border-radius:10px; overflow:hidden;">
+                            <div style="background:#f44336; width:${criticalPercent}%; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
+                                ${criticalPercent > 15 ? Math.round(criticalPercent) + '%' : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div style="margin-bottom:15px;">
-                        <div style="background:#ff9800; width:${highPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">⚠️ High (${highCount})</div>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>⚠️ High</span>
+                            <span>${highCount} (${Math.round(highPercent)}%)</span>
+                        </div>
+                        <div style="background:#e0e0e0; border-radius:10px; overflow:hidden;">
+                            <div style="background:#ff9800; width:${highPercent}%; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
+                                ${highPercent > 15 ? Math.round(highPercent) + '%' : ''}
+                            </div>
+                        </div>
                     </div>
-                    <div style="margin-bottom:15px;">
-                        <div style="background:#4CAF50; width:${normalPercent}%; height:35px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">✅ Normal (${normalCount})</div>
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>✅ Normal</span>
+                            <span>${normalCount} (${Math.round(normalPercent)}%)</span>
+                        </div>
+                        <div style="background:#e0e0e0; border-radius:10px; overflow:hidden;">
+                            <div style="background:#4CAF50; width:${normalPercent}%; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
+                                ${normalPercent > 15 ? Math.round(normalPercent) + '%' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:15px; padding-top:10px; border-top:1px solid #ddd; text-align:center; font-size:12px; color:#666;">
+                        Total Customers: ${total}
                     </div>
                 </div>
             `;
             document.getElementById('healthChart').innerHTML = chartHtml;
         }
-
         function exportToExcel() {
             let csv = "Name,DOB,Gender,Phone,Address,Priority,Last Contact Days,Health Score\n";
             customers.forEach(c => {
