@@ -339,16 +339,18 @@ function markContacted(id) {
     let customer = customers.find(c => c.id === id);
     if (customer) {
         if (!customer.checkupHistory) customer.checkupHistory = [];
-        customer.checkupHistory.unshift({
-            date: new Date().toISOString(),
-            notes: "✅ Contacted by admin - Symptoms addressed"
-        });
-        customer.notes = "";
+        if (customer.notes && customer.notes.includes("Pending review")) {
+            customer.checkupHistory.unshift({
+                date: new Date().toISOString(),
+                notes: "✅ Resolved: " + customer.notes.replace("🟡 Pending review: ", "")
+            });
+            customer.notes = "";
+        }
         customer.lastContact = new Date().toISOString();
         saveData();
         displayCustomers();
         generateAI();
-        alert("✅ Contact recorded! Symptoms cleared.");
+        alert("✅ Contact recorded! Symptoms moved to history.");
     }
 }
 
