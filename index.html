@@ -159,230 +159,232 @@
         let customers = [];
         let editCustomerId = null;
         let currentFilter = 'all';
+
         function loadData() {
-    const saved = localStorage.getItem('smartcrm_customers');
-    if (saved) {
-        customers = JSON.parse(saved);
-    } else {
-        customers = [
-            {id:1,name:"John Smith",phone:"9876543210",dob:"1990-05-15",gender:"Male",address:"New York",priority:"critical",notes:"Needs regular medication",lastContact:new Date(Date.now()-10*86400000).toISOString(),checkupHistory:[]},
-            {id:2,name:"Emma Wilson",phone:"9876543211",dob:"1985-08-22",gender:"Female",address:"Los Angeles",priority:"high",notes:"Pregnancy care",lastContact:new Date(Date.now()-3*86400000).toISOString(),checkupHistory:[]},
-            {id:3,name:"Michael Brown",phone:"9876543212",dob:"1995-12-10",gender:"Male",address:"Chicago",priority:"normal",notes:"Regular checkup",lastContact:new Date(Date.now()-1*86400000).toISOString(),checkupHistory:[]},
-            {id:4,name:"Sophia Davis",phone:"9876543213",dob:"1988-03-25",gender:"Female",address:"Houston",priority:"normal",notes:"Annual checkup",lastContact:new Date(Date.now()-5*86400000).toISOString(),checkupHistory:[]},
-            {id:5,name:"James Wilson",phone:"9876543214",dob:"1975-11-30",gender:"Male",address:"Phoenix",priority:"high",notes:"Diabetes care",lastContact:new Date(Date.now()-8*86400000).toISOString(),checkupHistory:[]}
-        ];
-        saveData();
-    }
-    updateStats();
-    displayCustomers();
-    generateAI();
-    updateChart();
-}
-
-function saveData() {
-    localStorage.setItem('smartcrm_customers', JSON.stringify(customers));
-    updateStats();
-    updateChart();
-}
-
-function updateStats() {
-    let now = new Date();
-    let needFollowupCount = customers.filter(c => (now - new Date(c.lastContact)) / 86400000 > 7).length;
-    let criticalCount = customers.filter(c => c.priority === 'critical').length;
-    let highCount = customers.filter(c => c.priority === 'high').length;
-    document.getElementById('totalCustomers').innerText = customers.length;
-    document.getElementById('criticalCount').innerText = criticalCount;
-    document.getElementById('needFollowup').innerText = needFollowupCount;
-    document.getElementById('highCount').innerText = highCount;
-}
-
-function filterBy(type) {
-    currentFilter = type;
-    let filteredCustomers = [...customers];
-    let now = new Date();
-    let filterMessage = "";
-    if (type === 'critical') {
-        filteredCustomers = customers.filter(c => c.priority === 'critical');
-        filterMessage = "🚨 Showing CRITICAL PRIORITY customers only";
-    } else if (type === 'high') {
-        filteredCustomers = customers.filter(c => c.priority === 'high');
-        filterMessage = "⚠️ Showing HIGH PRIORITY customers only";
-    } else if (type === 'needFollowup') {
-        filteredCustomers = customers.filter(c => (now - new Date(c.lastContact)) / 86400000 > 7);
-        filterMessage = "⚠️ Showing customers who NEED FOLLOW-UP (7+ days no contact)";
-    } else {
-        filteredCustomers = customers;
-    }
-    document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active-filter'));
-    if (type === 'critical') document.getElementById('statCritical').classList.add('active-filter');
-    else if (type === 'high') document.getElementById('statHigh').classList.add('active-filter');
-    else if (type === 'needFollowup') document.getElementById('statFollowup').classList.add('active-filter');
-    else document.getElementById('statAll').classList.add('active-filter');
-    
-    if (type !== 'all') {
-        document.getElementById('clearFilterBtn').style.display = 'inline-block';
-        document.getElementById('filterBadge').style.display = 'inline-block';
-        document.getElementById('filterBadge').innerHTML = filterMessage + ' <span onclick="clearFilter()" style="cursor:pointer;">✖️</span>';
-    } else {
-        document.getElementById('clearFilterBtn').style.display = 'none';
-        document.getElementById('filterBadge').style.display = 'none';
-    }
-    displayCustomers(filteredCustomers);
-}
-
-function clearFilter() {
-    currentFilter = 'all';
-    displayCustomers(customers);
-    document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active-filter'));
-    document.getElementById('statAll').classList.add('active-filter');
-    document.getElementById('clearFilterBtn').style.display = 'none';
-    document.getElementById('filterBadge').style.display = 'none';
-}
-
-function addCustomer() {
-    let name = document.getElementById('customerName').value.trim();
-    let phone = document.getElementById('customerPhone').value.trim();
-    let dob = document.getElementById('customerDob').value;
-    if (!name || !phone) { alert("Please enter name and phone"); return; }
-    if (!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits"); return; }
-    if (!dob) { alert("Please select Date of Birth"); return; }
-    customers.unshift({
-        id: Date.now(), name: name, phone: phone, dob: dob,
-        gender: document.getElementById('customerGender').value,
-        address: document.getElementById('customerAddress').value || "Not provided",
-        priority: document.getElementById('customerPriority').value,
-        notes: document.getElementById('customerNotes').value || "",
-        lastContact: new Date().toISOString(),
-        checkupHistory: [{date: new Date().toISOString(), notes: "First visit recorded"}]
-    });
-    saveData();
-    clearFilter();
-    displayCustomers();
-    generateAI();
-    document.getElementById('customerName').value = "";
-    document.getElementById('customerPhone').value = "";
-    document.getElementById('customerDob').value = "";
-    document.getElementById('customerAddress').value = "";
-    document.getElementById('customerPriority').value = "normal";
-    document.getElementById('customerNotes').value = "";
-    alert("Customer added!");
-}
-
-function deleteCustomer(id) {
-    if (confirm("Delete this customer?")) {
-        customers = customers.filter(c => c.id !== id);
-        saveData();
-        clearFilter();
-        displayCustomers();
-        generateAI();
-    }
-}
-
-function openEditModal(id) {
-    let customer = customers.find(c => c.id === id);
-    if (customer) {
-        editCustomerId = id;
-        document.getElementById('editName').value = customer.name;
-        document.getElementById('editPhone').value = customer.phone;
-        document.getElementById('editDob').value = customer.dob || "";
-        document.getElementById('editGender').value = customer.gender;
-        document.getElementById('editAddress').value = customer.address;
-        document.getElementById('editPriority').value = customer.priority;
-        document.getElementById('editNotes').value = customer.notes || "";
-        document.getElementById('editModal').style.display = 'flex';
-    }
-}
-
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-    editCustomerId = null;
-}
-
-function saveEdit() {
-    let index = customers.findIndex(c => c.id === editCustomerId);
-    if (index !== -1) {
-        customers[index].name = document.getElementById('editName').value.trim();
-        customers[index].phone = document.getElementById('editPhone').value.trim();
-        customers[index].dob = document.getElementById('editDob').value;
-        customers[index].gender = document.getElementById('editGender').value;
-        customers[index].address = document.getElementById('editAddress').value;
-        customers[index].priority = document.getElementById('editPriority').value;
-        customers[index].notes = document.getElementById('editNotes').value;
-        saveData();
-        clearFilter();
-        displayCustomers();
-        generateAI();
-        closeModal();
-        alert("Customer updated!");
-    }
-}
-
-function addCheckup(id) {
-    let notes = prompt("Enter checkup notes:");
-    if (notes && notes.trim()) {
-        let customer = customers.find(c => c.id === id);
-        if (customer) {
-            if (!customer.checkupHistory) customer.checkupHistory = [];
-            customer.checkupHistory.unshift({date: new Date().toISOString(), notes: notes});
-            customer.lastContact = new Date().toISOString();
-            saveData();
+            const saved = localStorage.getItem('smartcrm_customers');
+            if (saved) {
+                customers = JSON.parse(saved);
+            } else {
+                customers = [
+                    {id:1,name:"John Smith",phone:"9876543210",dob:"1990-05-15",gender:"Male",address:"New York",priority:"critical",notes:"Needs regular medication",lastContact:new Date(Date.now()-10*86400000).toISOString(),checkupHistory:[]},
+                    {id:2,name:"Emma Wilson",phone:"9876543211",dob:"1985-08-22",gender:"Female",address:"Los Angeles",priority:"high",notes:"Pregnancy care",lastContact:new Date(Date.now()-3*86400000).toISOString(),checkupHistory:[]},
+                    {id:3,name:"Michael Brown",phone:"9876543212",dob:"1995-12-10",gender:"Male",address:"Chicago",priority:"normal",notes:"Regular checkup",lastContact:new Date(Date.now()-1*86400000).toISOString(),checkupHistory:[]},
+                    {id:4,name:"Sophia Davis",phone:"9876543213",dob:"1988-03-25",gender:"Female",address:"Houston",priority:"normal",notes:"Annual checkup",lastContact:new Date(Date.now()-5*86400000).toISOString(),checkupHistory:[]},
+                    {id:5,name:"James Wilson",phone:"9876543214",dob:"1975-11-30",gender:"Male",address:"Phoenix",priority:"high",notes:"Diabetes care",lastContact:new Date(Date.now()-8*86400000).toISOString(),checkupHistory:[]}
+                ];
+                saveData();
+            }
+            updateStats();
             displayCustomers();
             generateAI();
-            alert("Checkup recorded!");
+            updateChart();
         }
-    }
-}
 
-function markContacted(id) {
-    let customer = customers.find(c => c.id === id);
-    if (customer) {
-        if (!customer.checkupHistory) customer.checkupHistory = [];
-        if (customer.notes && customer.notes.includes("Pending review")) {
-            customer.checkupHistory.unshift({
-                date: new Date().toISOString(),
-                notes: "✅ Resolved: " + customer.notes.replace("🟡 Pending review: ", "")
+        function saveData() {
+            localStorage.setItem('smartcrm_customers', JSON.stringify(customers));
+            updateStats();
+            updateChart();
+        }
+
+        function updateStats() {
+            let now = new Date();
+            let needFollowupCount = customers.filter(c => (now - new Date(c.lastContact)) / 86400000 > 7).length;
+            let criticalCount = customers.filter(c => c.priority === 'critical').length;
+            let highCount = customers.filter(c => c.priority === 'high').length;
+            document.getElementById('totalCustomers').innerText = customers.length;
+            document.getElementById('criticalCount').innerText = criticalCount;
+            document.getElementById('needFollowup').innerText = needFollowupCount;
+            document.getElementById('highCount').innerText = highCount;
+        }
+
+        function filterBy(type) {
+            currentFilter = type;
+            let filteredCustomers = [...customers];
+            let now = new Date();
+            let filterMessage = "";
+            if (type === 'critical') {
+                filteredCustomers = customers.filter(c => c.priority === 'critical');
+                filterMessage = "🚨 Showing CRITICAL PRIORITY customers only";
+            } else if (type === 'high') {
+                filteredCustomers = customers.filter(c => c.priority === 'high');
+                filterMessage = "⚠️ Showing HIGH PRIORITY customers only";
+            } else if (type === 'needFollowup') {
+                filteredCustomers = customers.filter(c => (now - new Date(c.lastContact)) / 86400000 > 7);
+                filterMessage = "⚠️ Showing customers who NEED FOLLOW-UP (7+ days no contact)";
+            } else {
+                filteredCustomers = customers;
+            }
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active-filter'));
+            if (type === 'critical') document.getElementById('statCritical').classList.add('active-filter');
+            else if (type === 'high') document.getElementById('statHigh').classList.add('active-filter');
+            else if (type === 'needFollowup') document.getElementById('statFollowup').classList.add('active-filter');
+            else document.getElementById('statAll').classList.add('active-filter');
+            
+            if (type !== 'all') {
+                document.getElementById('clearFilterBtn').style.display = 'inline-block';
+                document.getElementById('filterBadge').style.display = 'inline-block';
+                document.getElementById('filterBadge').innerHTML = filterMessage + ' <span onclick="clearFilter()" style="cursor:pointer;">✖️</span>';
+            } else {
+                document.getElementById('clearFilterBtn').style.display = 'none';
+                document.getElementById('filterBadge').style.display = 'none';
+            }
+            displayCustomers(filteredCustomers);
+        }
+
+        function clearFilter() {
+            currentFilter = 'all';
+            displayCustomers(customers);
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active-filter'));
+            document.getElementById('statAll').classList.add('active-filter');
+            document.getElementById('clearFilterBtn').style.display = 'none';
+            document.getElementById('filterBadge').style.display = 'none';
+        }
+
+        function addCustomer() {
+            let name = document.getElementById('customerName').value.trim();
+            let phone = document.getElementById('customerPhone').value.trim();
+            let dob = document.getElementById('customerDob').value;
+            if (!name || !phone) { alert("Please enter name and phone"); return; }
+            if (!/^\d{10}$/.test(phone)) { alert("Phone number must be exactly 10 digits"); return; }
+            if (!dob) { alert("Please select Date of Birth"); return; }
+            customers.unshift({
+                id: Date.now(), name: name, phone: phone, dob: dob,
+                gender: document.getElementById('customerGender').value,
+                address: document.getElementById('customerAddress').value || "Not provided",
+                priority: document.getElementById('customerPriority').value,
+                notes: document.getElementById('customerNotes').value || "",
+                lastContact: new Date().toISOString(),
+                checkupHistory: [{date: new Date().toISOString(), notes: "First visit recorded"}]
             });
-            customer.notes = "";
+            saveData();
+            clearFilter();
+            displayCustomers();
+            generateAI();
+            document.getElementById('customerName').value = "";
+            document.getElementById('customerPhone').value = "";
+            document.getElementById('customerDob').value = "";
+            document.getElementById('customerAddress').value = "";
+            document.getElementById('customerPriority').value = "normal";
+            document.getElementById('customerNotes').value = "";
+            alert("Customer added!");
         }
-        customer.lastContact = new Date().toISOString();
-        saveData();
-        displayCustomers();
-        generateAI();
-        alert("✅ Contact recorded! Symptoms cleared.");
-    }
-}
 
-function searchCustomers() {
-    let term = document.getElementById('searchInput').value.toLowerCase();
-    if (term === "") {
-        if (currentFilter !== 'all') filterBy(currentFilter);
-        else displayCustomers(customers);
-    } else {
-        let filtered = customers.filter(c => c.name.toLowerCase().includes(term) || c.phone.includes(term));
-        displayCustomers(filtered);
-    }
-}
+        function deleteCustomer(id) {
+            if (confirm("Delete this customer?")) {
+                customers = customers.filter(c => c.id !== id);
+                saveData();
+                clearFilter();
+                displayCustomers();
+                generateAI();
+            }
+        }
 
-function calculateHealthScore(customer) {
-    let days = (new Date() - new Date(customer.lastContact)) / 86400000;
-    let score = 100;
-    if (days > 7) score -= 30;
-    else if (days > 3) score -= 15;
-    if (customer.priority === 'critical') score -= 10;
-    else if (customer.priority === 'high') score -= 5;
-    return Math.max(0, score);
-}
+        function openEditModal(id) {
+            let customer = customers.find(c => c.id === id);
+            if (customer) {
+                editCustomerId = id;
+                document.getElementById('editName').value = customer.name;
+                document.getElementById('editPhone').value = customer.phone;
+                document.getElementById('editDob').value = customer.dob || "";
+                document.getElementById('editGender').value = customer.gender;
+                document.getElementById('editAddress').value = customer.address;
+                document.getElementById('editPriority').value = customer.priority;
+                document.getElementById('editNotes').value = customer.notes || "";
+                document.getElementById('editModal').style.display = 'flex';
+            }
+        }
 
-function formatDate(dateString) {
-    let date = new Date(dateString);
-    return date.toLocaleDateString();
-}
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editCustomerId = null;
+        }
 
-function formatDateOnly(dateString) {
-    if (!dateString) return "Not set";
-    let date = new Date(dateString);
-    return date.toLocaleDateString();
-}
+        function saveEdit() {
+            let index = customers.findIndex(c => c.id === editCustomerId);
+            if (index !== -1) {
+                customers[index].name = document.getElementById('editName').value.trim();
+                customers[index].phone = document.getElementById('editPhone').value.trim();
+                customers[index].dob = document.getElementById('editDob').value;
+                customers[index].gender = document.getElementById('editGender').value;
+                customers[index].address = document.getElementById('editAddress').value;
+                customers[index].priority = document.getElementById('editPriority').value;
+                customers[index].notes = document.getElementById('editNotes').value;
+                saveData();
+                clearFilter();
+                displayCustomers();
+                generateAI();
+                closeModal();
+                alert("Customer updated!");
+            }
+        }
+
+        function addCheckup(id) {
+            let notes = prompt("Enter checkup notes:");
+            if (notes && notes.trim()) {
+                let customer = customers.find(c => c.id === id);
+                if (customer) {
+                    if (!customer.checkupHistory) customer.checkupHistory = [];
+                    customer.checkupHistory.unshift({date: new Date().toISOString(), notes: notes});
+                    customer.lastContact = new Date().toISOString();
+                    saveData();
+                    displayCustomers();
+                    generateAI();
+                    alert("Checkup recorded!");
+                }
+            }
+        }
+
+        function markContacted(id) {
+            let customer = customers.find(c => c.id === id);
+            if (customer) {
+                if (!customer.checkupHistory) customer.checkupHistory = [];
+                if (customer.notes && customer.notes.includes("Pending review")) {
+                    customer.checkupHistory.unshift({
+                        date: new Date().toISOString(),
+                        notes: "✅ Resolved: " + customer.notes.replace("🟡 Pending review: ", "")
+                    });
+                    customer.notes = "";
+                }
+                customer.lastContact = new Date().toISOString();
+                saveData();
+                displayCustomers();
+                generateAI();
+                alert("✅ Contact recorded! Symptoms cleared.");
+            }
+        }
+
+        function searchCustomers() {
+            let term = document.getElementById('searchInput').value.toLowerCase();
+            if (term === "") {
+                if (currentFilter !== 'all') filterBy(currentFilter);
+                else displayCustomers(customers);
+            } else {
+                let filtered = customers.filter(c => c.name.toLowerCase().includes(term) || c.phone.includes(term));
+                displayCustomers(filtered);
+            }
+        }
+
+        function calculateHealthScore(customer) {
+            let days = (new Date() - new Date(customer.lastContact)) / 86400000;
+            let score = 100;
+            if (days > 7) score -= 30;
+            else if (days > 3) score -= 15;
+            if (customer.priority === 'critical') score -= 10;
+            else if (customer.priority === 'high') score -= 5;
+            return Math.max(0, score);
+        }
+
+        function formatDate(dateString) {
+            let date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+
+        function formatDateOnly(dateString) {
+            if (!dateString) return "Not set";
+            let date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+
         function displayCustomers(list = null) {
             let data = list || customers;
             let container = document.getElementById('customerList');
